@@ -11,14 +11,15 @@ interface Message {
 
 interface MessageBubbleProps {
   message: Message;
+  isGroup: boolean;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isGroup }) => {
   if (message.type === "system") {
     return (
-      <div className="flex justify-center">
-        <div className="bg-yellow-100 px-3 py-1 rounded-lg">
-          <span className="text-sm text-gray-700">{message.sender}</span>
+      <div className="flex justify-center my-2">
+        <div className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-500  shadow">
+          {message.content}
         </div>
       </div>
     );
@@ -31,30 +32,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div className="flex items-end space-x-2 max-w-xs lg:max-w-md">
         {isReceived && message.avatar && (
           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs">{message.avatar}</span>
+            <span className="text-xs font-semibold">{message.avatar}</span>
           </div>
         )}
-        <div>
+
+        <div className="flex flex-col my-2">
+          {/* Sender */}
+          
+
+          {/* Message bubble */}
           <div
-            className={`px-3 py-2 rounded-lg font-semibold
-               ${
-                 isReceived
-                   ? "bg-white text-gray-800"
-                   : "bg-green-100 text-gray-800"
-               }`}
-          >
+            className={`px-3 py-2 rounded-lg shadow ${
+              isReceived
+                ? "bg-white text-gray-900"
+                : "bg-green-100 text-gray-900"
+            }`}
+          >          {isGroup && <span className="text-xs text-green-500 mb-1">{message.sender}</span>}
+
             <p className="text-sm">{message.content}</p>
             <div className="flex items-center justify-end mt-1 space-x-1">
-              <span
-                className={`text-xs ${
-                  isReceived ? "text-gray-500" : "text-gray-500"
-                }`}
-              >
-                {message.time}
-              </span>
-              {!isReceived && (
-                <span className="text-gray-400 text-xs">✓</span>
-              )}
+              <span className="text-[10px] text-gray-500 ">{message.time}</span>
+              {!isReceived && <span className="text-gray-400 text-xs">✓</span>}
             </div>
           </div>
         </div>

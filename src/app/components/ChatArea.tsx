@@ -16,7 +16,11 @@ import { MdInfo } from "react-icons/md";
 import { IoIosArrowDropdownCircle } from "react-icons/io";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../context/ChatContext";
-
+import dayjs from "dayjs"; // install if not added: npm install dayjs
+import relativeTime from "dayjs/plugin/relativeTime";
+import calendar from "dayjs/plugin/calendar";
+dayjs.extend(relativeTime);
+dayjs.extend(calendar);
 interface Message {
   id: string;
   chat_id: string;
@@ -30,15 +34,22 @@ interface User {
   username: string;
 }
 
+interface Participant {
+  display_name: string;
+  user_id: string;
+}
+
 export default function ChatArea() {
   const { user } = useAuth();
-  const { activeChatId } = useChat();
+  const { activeChatId, displayName } = useChat();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [key, SetKey] = useState("123");
   const [chatInfo, setChatInfo] = useState<any>(null);
   const [usersMap, setUsersMap] = useState<Record<string, User>>({});
   const [sending, setSending] = useState(false);
+  // const [displayName, SetDisplayName] = useState("Name");
+  const [senderId, SetSenderId] = useState("123");
   const [sendError, setSendError] = useState("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const currentUserId = user?.id;
@@ -50,6 +61,7 @@ export default function ChatArea() {
     if (!activeChatId) return;
 
     fetchMessages();
+    // fetchDisplayName()
   }, [activeChatId]);
 
   // // Fetch unique users from messages to get usernames
@@ -87,7 +99,7 @@ export default function ChatArea() {
     if (!activeChatId) return;
 
     const channel = supabase
-      .channel("chat:${activeChatId}")
+      .channel(`chat:${activeChatId}`)
       .on(
         "postgres_changes",
         {
@@ -97,6 +109,7 @@ export default function ChatArea() {
         },
         (payload) => {
           const newMessage = payload.new as Message;
+          if (newMessage.chat_id !== activeChatId) return;
           // if (newMessage.chat_id === activeChatId) {
           //   setMessages((prev) => [...prev, newMessage]);
           //   bottomRef.current?.scrollIntoView();
@@ -112,38 +125,60 @@ export default function ChatArea() {
       supabase.removeChannel(channel);
     };
   }, [activeChatId]);
-  //   useEffect(() => {
-  //   // Only subscribe if user is present
+
+  // useEffect(() => {
   //   if (!user) return;
-
-  //   // Subscribe to INSERT, UPDATE, DELETE on the "chats" table
-  //   const channel = supabase
-  //     .channel("realtime-chats")
-  //     .on(
-  //       "postgres_changes",
-  //       {
-  //         event: "*", // Listen to all events: INSERT, UPDATE, DELETE
-  //         schema: "public",
-  //         table: "chats",
-  //       },
-  //       (payload) => {
-  //         // Whenever a change happens, re-fetch chats
-  //         fetchMessages();
-  //         SetKey(String(Math.random()))
-  //       }
-  //     )
-  //     .subscribe();
-
-  //   // Clean up subscription on unmount
-  //   return () => {
-  //     supabase.removeChannel(channel);
-  //   };
-  // }, [user]);
+  //   fetchDisplayName();
+  // }, [senderId, activeChatId]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    fetchMessages();
+    fetchChatMeta();
+  }, [activeChatId]);
+
+  const fetchChatMeta = async () => {
+    const chatRes = await supabase
+      .from("chats")
+      .select("id, is_group, name")
+      .eq("id", activeChatId)
+      .single();
+
+    const participantsRes = await supabase
+      .from("chat_participants")
+      .select("user_id, display_name")
+      .eq("chat_id", activeChatId);
+
+    if (chatRes.data) setChatInfo(chatRes.data);
+    if (participantsRes.data)
+      setUsersMap(
+        Object.fromEntries(
+          participantsRes.data.map((p: Participant) => [
+            p.user_id,
+            { id: p.user_id, username: p.display_name },
+          ])
+        )
+      );
+  };
+
+  // const fetchDisplayName = async () => {
+  //   const { data, error } = await supabase
+  //     .from("users")
+  //     .select("username")
+  //     .eq("id", senderId);
+
+  //   if (error) {
+  //     console.error("Error fetching messages:", error);
+  //   } else {
+  //     SetDisplayName(data[0].username ?? []);
+  //     console.log(data);
+  //   }
+  // };
 
   const fetchMessages = async () => {
     const { data, error } = await supabase
@@ -156,6 +191,8 @@ export default function ChatArea() {
       console.error("Error fetching messages:", error);
     } else {
       setMessages(data ?? []);
+      console.log(data[0].sender_id);
+      SetSenderId(data[0].sender_id);
     }
   };
 
@@ -166,6 +203,22 @@ export default function ChatArea() {
       </div>
     );
   }
+
+  const groupMessagesByDate = (messages: Message[]) => {
+    const result: { date: string; messages: Message[] }[] = [];
+
+    messages.forEach((msg) => {
+      const date = dayjs(msg.created_at).format("YYYY-MM-DD");
+      const existingGroup = result.find((g) => g.date === date);
+      if (existingGroup) {
+        existingGroup.messages.push(msg);
+      } else {
+        result.push({ date, messages: [msg] });
+      }
+    });
+
+    return result;
+  };
   // Send message handler with error and loading handling
   const handleSend = async () => {
     setSendError("");
@@ -191,7 +244,7 @@ export default function ChatArea() {
   return (
     <div
       key={key}
-      className="flex  flex-col w-[55%] h-[93.8vh] overflow-y-hidden bg-white"
+      className="flex  flex-col w-[57%] h-[93.8vh] overflow-y-hidden bg-white"
       style={{ backgroundImage: "url('/bg.png')" }}
     >
       {/* Chat Header */}
@@ -201,15 +254,49 @@ export default function ChatArea() {
             <span className="text-sm">👤</span>
           </div>
           <div>
-            <h2 className="font-medium text-gray-900">Chat</h2>
-            <p className="text-sm text-gray-600">Chat ID: {activeChatId}</p>
+            <h2 className="font-medium text-gray-900">
+              {chatInfo?.is_group ? chatInfo?.name : displayName}
+            </h2>
+            {chatInfo?.is_group && (
+              <p className="text-sm text-gray-600">
+                {Object.values(usersMap)
+                  .map((u) => u.username)
+                  .filter((name) => name !== "You")
+                  .join(", ")}
+              </p>
+            )}
+            {/* <p className="text-sm text-gray-600">Chat ID: {activeChatId}</p> */}
           </div>
         </div>
-        <FiSearch className="w-5 h-5 text-gray-600 cursor-pointer" />
+
+        <div className="flex items-center space-x-2">
+          {" "}
+          {chatInfo?.is_group && (
+            <div className="flex -space-x-2">
+              {Object.values(usersMap)
+                .slice(0, 3)
+                .map((u) => (
+                  <div
+                    key={u.id}
+                    className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm border-2 border-white"
+                  >
+                    {u.username.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+              {Object.values(usersMap).length > 3 && (
+                <div className="w-8 h-8 bg-gray-200 text-xs rounded-full flex items-center justify-center border-2 border-white">
+                  +{Object.values(usersMap).length - 3}
+                </div>
+              )}
+            </div>
+          )}
+          <BsStars className="h-5 w-5 -rotate-90" />
+          <FiSearch className="w-5 h-5 text-gray-600 cursor-pointer" />
+        </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => {
           const senderName =
             message.sender_id === currentUserId
@@ -230,7 +317,48 @@ export default function ChatArea() {
           );
         })}
         <div ref={bottomRef} />
+      </div> */}
+
+      {/* Messages with Day Headers */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {groupMessagesByDate(messages).map((group) => (
+          <div key={group.date}>
+            <div className="text-center text-xs  text-gray-500 my-4">
+              <span className="py-1 px-2 rounded bg-gray-200">
+                {dayjs(group.date).calendar(null, {
+                  sameDay: "[Today]",
+                  lastDay: "[Yesterday]",
+                  lastWeek: "dddd",
+                  sameElse: "MMM D, YYYY",
+                })}
+              </span>
+            </div>
+            {group.messages.map((message) => {
+              const senderName =
+                message.sender_id === currentUserId
+                  ? "You"
+                  : usersMap[message.sender_id]?.username ?? "User";
+
+              return (
+                <MessageBubble
+                  key={message.id}
+                  message={{
+                    id: message.id,
+                    sender: senderName,
+                    content: message.content,
+                    time: new Date(message.created_at).toLocaleTimeString(),
+                    type:
+                      message.sender_id === currentUserId ? "sent" : "received",
+                  }}
+                  isGroup={chatInfo?.is_group}
+                />
+              );
+            })}
+          </div>
+        ))}
+        <div ref={bottomRef} />
       </div>
+
       <div className="flex bg-transparent space-x-3 items-center px-2">
         <IoIosArrowDropdownCircle className="text-gray-400" />
         <div className="flex border bg-green-100 border-gray-200 items-center space-x-1 p-1 rounded-t-md hover:bg-gray-100 cursor-pointer">
@@ -289,6 +417,6 @@ export default function ChatArea() {
           </div>
         </div>
       </div>
-      </div>
+    </div>
   );
 }

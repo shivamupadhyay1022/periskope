@@ -8,6 +8,7 @@ export interface ChatListItemProps {
   time?: string;
   unread?: number;
   isActive?: boolean;
+    is_group?: boolean;
   onClick?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   time,
   unread = 0,
   isActive = false,
+  is_group = false,
   onClick,
 }) => {
   return (

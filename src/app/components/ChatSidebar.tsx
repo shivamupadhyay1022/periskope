@@ -11,14 +11,17 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useChat } from "@/app/context/ChatContext";
 interface ChatRow {
   id: string;
+  displayName:string;
   name: string;
   updated_at: string;
+  is_group: boolean;
   last_message: string;
 }
 
 export default function ChatSidebar() {
   const { user } = useAuth();
   const { activeChatId, setActiveChatId } = useChat();
+  const {  SetDisplayName } = useChat();
 
   const [chats, setChats] = useState<ChatRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +35,10 @@ export default function ChatSidebar() {
       minute: "2-digit",
     });
 
-  const fetchChats = async () => {
+
+
+  useEffect(() => {
+      const fetchChats = async () => {
     if (!user) return;
 
     setLoading(true);
@@ -40,9 +46,9 @@ export default function ChatSidebar() {
     // Step 1: Get all chat_ids where user is a participant
     const { data: participants, error: participantsError } = await supabase
       .from("chat_participants")
-      .select("chat_id,display_name")
+      .select("chat_id,display_name,user_id")
       .eq("user_id", user.id);
-      
+
     if (participantsError || !participants) {
       console.error("❌ Error fetching chat_participants:", participantsError);
       setLoading(false);
@@ -50,14 +56,14 @@ export default function ChatSidebar() {
     }
 
     const chatIds = participants.map((p) => p.chat_id);
-      const displayNameMap = participants.reduce((acc, p) => {
-    acc[p.chat_id] = p.display_name;
-    return acc;
-  }, {} as Record<string, string>);
+    const displayNameMap = participants.reduce((acc, p) => {
+      acc[p.chat_id] = p.display_name;
+      return acc;
+    }, {} as Record<string, string>);
     // Step 2: Fetch chat data for each chat_id in one query
     const { data: chatData, error: chatError } = await supabase
       .from("chats")
-      .select("id, name, updated_at, last_message_id")
+      .select("id, name, updated_at, last_message_id, is_group")
       .in("id", chatIds);
 
     if (chatError || !chatData) {
@@ -75,7 +81,9 @@ export default function ChatSidebar() {
       .map((chat) => ({
         id: chat.id,
         name: displayNameMap[chat.id] ?? "Unnamed",
+        displayName: chat.name,
         updated_at: chat.updated_at ?? "",
+        is_group: chat.is_group ?? false,
         last_message: chat.last_message_id ?? "",
       }));
 
@@ -83,8 +91,6 @@ export default function ChatSidebar() {
     setFilteredChats(sortedChats);
     setLoading(false);
   };
-
-  useEffect(() => {
     fetchChats();
   }, [user]);
 
@@ -104,9 +110,7 @@ export default function ChatSidebar() {
   }, [searchTerm, chats]);
 
   return (
-    <div className="w-1/3  bg-white border-r h-[93.8vh] border-gray-200 flex flex-col ">
-      {/* UI omitted for brevity — reuse your existing buttons/search */}
-      {/* Filters + Search */}
+    <div className="w-1/3 ml-16 bg-white border-r h-[93.8vh] border-gray-200 flex flex-col ">
       <div className="h-16 flex justify-between px-2 py-1 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <button className="px-3 flex items-center gap-1 text-green-700">
@@ -120,7 +124,7 @@ export default function ChatSidebar() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveSearch(!activeSearch)}
-            className="flex items-center px-2 py-1 border border-gray-200 text-gray-600 rounded-sm text-sm"
+            className="flex cursor-pointer items-center px-2 py-1 border border-gray-200 text-gray-600 rounded-sm text-sm"
           >
             <IoSearch /> <span>Search</span>
           </button>
@@ -131,7 +135,20 @@ export default function ChatSidebar() {
           </button>
         </div>
       </div>
-      <div className="bg-green-600 text-white rounded-full p-2 bottom-6 left-[410px] absolute" >
+      {activeSearch && (
+        <div className="p-3 border-b border-gray-200">
+          <div className="relative">
+            <IoSearch className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search"
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-1 focus:ring-green-500"
+            />
+          </div>
+        </div>
+      )}
+      <div className="bg-green-600 text-white rounded-full p-2 bottom-6 left-[410px] absolute">
         <IoChatbubbleOutline />
       </div>
 
@@ -144,12 +161,16 @@ export default function ChatSidebar() {
             <ChatListItem
               key={chat.id}
               id={chat.id}
-              name={chat.name}
+              name={chat.is_group ? chat.displayName :chat.name}
               avatar={chat.name.charAt(0).toUpperCase()}
               lastMessage={chat.last_message}
               time={formatTime(chat.updated_at)}
               isActive={activeChatId === chat.id}
-              onClick={() => setActiveChatId(chat.id)}
+              is_group={chat.is_group}
+              onClick={() => {
+                setActiveChatId(chat.id);
+                SetDisplayName(chat.name);
+              }}
             />
           ))}
       </div>

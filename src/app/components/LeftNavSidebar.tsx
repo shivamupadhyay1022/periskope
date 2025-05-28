@@ -37,10 +37,10 @@ const LeftNavSidebar = () => {
   ];
 
   return (
-    <div className=" overflow-hidden  w-16 flex flex-col items-center py-4 space-y-1 h-[93.8vh] overflow-y-hidden">
+    <div className=" overflow-hidden z-[100] fixed  w-14 flex top-0 border-r-2 border-gray-200 flex-col items-center py-4 space-y-1 h-[100vh] bg-white overflow-y-hidden">
       {/* Logo */}
-      <div className=" bg-green-500 rounded-full flex items-center justify-center mb-4">
-        <span className="text-white text-lg font-bold">W</span>
+      <div className=" bg-green-500 rounded-full flex items-center justify-center h-8 w-8 mb-4">
+        <span className="text-white text-lg font-bold">P</span>
       </div>
 
       {/* Navigation items */}

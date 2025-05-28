@@ -1,17 +1,4 @@
 import React from "react";
-import { HiMiniHome } from "react-icons/hi2";
-import { BsChatDotsFill } from "react-icons/bs";
-import { IoTicket } from "react-icons/io5";
-import { FaChartLine } from "react-icons/fa6";
-import { TfiMenuAlt } from "react-icons/tfi";
-import { AiFillNotification } from "react-icons/ai";
-import { PiTreeStructure } from "react-icons/pi";
-import { BsStars } from "react-icons/bs";
-import { RiContactsBookFill } from "react-icons/ri";
-import { MdOutlineChecklist } from "react-icons/md";
-import { RiSettings2Fill } from "react-icons/ri";
-import { TbLayoutSidebarLeftExpandFilled } from "react-icons/tb";
-import { TbStarsFilled } from "react-icons/tb";
 import { TbLayoutSidebarRightExpandFilled } from "react-icons/tb";
 import { LuRefreshCw } from "react-icons/lu";
 import { FiEdit3 } from "react-icons/fi";
@@ -36,11 +23,11 @@ const RightNavSidebar = () => {
   ];
 
   return (
-    <div className=" overflow-hidden w-16 flex flex-col items-center py-4 space-y-1 h-[93.8vh] overflow-y-hidden">
+    <div className=" overflow-hidden w-14 border-l-2 border-gray-200 flex flex-col items-center py-4 space-y-1 h-[93.8vh] overflow-y-hidden">
       {/* Logo */}
-      <div className="  rounded-full flex items-center justify-center mb-4">
+      {/* <div className="  rounded-full flex items-center justify-center mb-4">
         <span className="text-white text-lg font-bold">W</span>
-      </div>
+      </div> */}
 
       {/* Navigation items */}
       {navItems.map((item, index) => (

@@ -1,9 +1,10 @@
 import React from "react";
 import { TbRefreshDot, TbHelp } from "react-icons/tb";
 import { BiSolidBellOff } from "react-icons/bi";
-import { MdOutlineInstallDesktop } from "react-icons/md";
+import { MdOutlineInstallDesktop } from "react-icons/md"
+import { IoChatbubbleEllipsesSharp } from "react-icons/io5";
+;
 import { TfiMenuAlt } from "react-icons/tfi";
-import { TbStarsFilled } from "react-icons/tb";
 import { BsStars } from "react-icons/bs";
 import { CgScrollV } from "react-icons/cg";
 const TopNavBar = () => {
@@ -14,7 +15,9 @@ const TopNavBar = () => {
         <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center">
           <span className="text-white text-xs font-bold">W</span>
         </div>
-        <span className="text-sm font-medium text-gray-600">chats</span>
+        
+
+        <span className="text-sm font-medium text-gray-600 flex items-center ml-4 "><IoChatbubbleEllipsesSharp className="text-gray-500 mr-1" />chats</span>
       </div>
 
       {/* Center section */}

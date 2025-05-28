@@ -1,8 +1,6 @@
-import Image from "next/image";
 import TopNavBar from "./components/TopNavBar";
 import LeftNavSidebar from "./components/LeftNavSidebar";
 import ChatArea from "./components/ChatArea";
-import RightInfoSidebar from "./components/RightInfoSidebar";
 import ChatSidebar from "./components/ChatSidebar";
 import RightNavSidebar from "./components/RightNavSidebar";
 
